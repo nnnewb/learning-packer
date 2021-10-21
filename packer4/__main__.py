@@ -1,24 +1,19 @@
+
 # %%
+from os import path
 import struct
 import zlib
-from subprocess import STDOUT, CalledProcessError, check_output
 
-import lief
+from lief import PE
 
-def align(x, al):
-    """ return <x> aligned to <al> """
-    return ((x+(al-1))//al)*al
+from utils import align, compile
 
+src_dir = path.dirname(__file__)
 
 # %%
 # compile origin demo program
-try:
-    check_output('gcc example.c -m32 -O2 -o example.exe', shell=True, stderr=STDOUT)
-except CalledProcessError as e:
-    print(f'[!] demo program compilation failed, {e.stdout.decode()}')
-    raise
-
-binary = lief.PE.parse('example.exe')
+compile(path.join(src_dir, 'example.c'), '-m32 -O2 -o example.exe')
+binary = PE.parse('example.exe')
 print('[+] compile origin demo program success.')
 
 # %%
@@ -31,14 +26,11 @@ print('[+] analyze origin demo program binary success.')
 
 # %%
 # compile shifted loader program
-compile_args = [
-    'loader.c',
-    'minilzo/minilzo.c',
+cflags = [
     '-m32',
     '-O2',
     '-Wall',
     '-I.',
-    '-Iminilzo',
     '-Wl,--entry=__start',
     '-nodefaultlibs',
     '-nostartfiles',
@@ -52,20 +44,16 @@ compile_args = [
     'shifted-loader.exe'
 ]
 
-try:
-    check_output(' '.join(['gcc', *compile_args]), shell=True, stderr=STDOUT)
-    print('[+] compile shifted loader program success.')
-except CalledProcessError as e:
-    print(f'[!] loader compilation failed, {e.stdout.decode()}')
-    raise
+compile(path.join(src_dir, 'loader.c'), cflags)
+print('[+] compile shifted loader program success.')
 
-shifted_loader = lief.PE.parse('shifted-loader.exe')
+shifted_loader = PE.parse('shifted-loader.exe')
 sect_alignment = shifted_loader.optional_header.section_alignment
 file_alignment = shifted_loader.optional_header.file_alignment
 
 # %%
 # create new binary from scratch
-output = lief.PE.Binary('packed', lief.PE.PE_TYPE.PE32)
+output = PE.Binary('packed', PE.PE_TYPE.PE32)
 
 # copy essential fields from shifted_loader
 output.optional_header.imagebase = shifted_loader.optional_header.imagebase
@@ -77,12 +65,12 @@ output.optional_header.dll_characteristics = 0
 
 # add .alloc section
 allocate_size = align(highest_rva-lowest_rva, sect_alignment)
-allocate_section = lief.PE.Section(".alloc")
+allocate_section = PE.Section(".alloc")
 allocate_section.virtual_address = lowest_rva
 allocate_section.virtual_size = allocate_size
-allocate_section.characteristics = (lief.PE.SECTION_CHARACTERISTICS.MEM_READ
-                                    | lief.PE.SECTION_CHARACTERISTICS.MEM_WRITE
-                                    | lief.PE.SECTION_CHARACTERISTICS.CNT_UNINITIALIZED_DATA)
+allocate_section.characteristics = (PE.SECTION_CHARACTERISTICS.MEM_READ
+                                    | PE.SECTION_CHARACTERISTICS.MEM_WRITE
+                                    | PE.SECTION_CHARACTERISTICS.CNT_UNINITIALIZED_DATA)
 output.add_section(allocate_section)
 
 # copy sections
@@ -101,10 +89,10 @@ with open('example.exe', 'rb') as f:
     section_content = struct.pack('<II', compressed_length, origin_length)
     section_content += compressed
 
-    packed_section = lief.PE.Section('.packed')
+    packed_section = PE.Section('.packed')
     packed_section.content = list(section_content)
-    packed_section.characteristics = (lief.PE.SECTION_CHARACTERISTICS.MEM_READ |
-                                      lief.PE.SECTION_CHARACTERISTICS.CNT_INITIALIZED_DATA)
+    packed_section.characteristics = (PE.SECTION_CHARACTERISTICS.MEM_READ |
+                                      PE.SECTION_CHARACTERISTICS.CNT_INITIALIZED_DATA)
     output.add_section(packed_section)
 
 # copy data directories
@@ -122,7 +110,7 @@ output.optional_header.addressof_entrypoint = shifted_loader.optional_header.add
 output.optional_header.sizeof_image = 0
 
 # build output binary
-builder = lief.PE.Builder(output)
+builder = PE.Builder(output)
 builder.build()
 builder.write('packed.exe')
 print('[+] create packed binary success.')

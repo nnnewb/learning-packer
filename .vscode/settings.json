@@ -10,5 +10,11 @@
         "**/.cache": true,
         "**/build": true,
         "**/typings": true,
-    }
+        "**/__pycache__": true,
+        "**/*.o": true,
+        "**/*.exe": true,
+    },
+    "cSpell.words": [
+        "cflags"
+    ]
 }

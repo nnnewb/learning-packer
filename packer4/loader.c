@@ -1,12 +1,8 @@
 #include "zlib.h"
-#include <minwindef.h>
-#include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #include <windows.h>
 #include <winnt.h>
-#include <zconf.h>
-#pragma runtime_checks("", off)
 
 void fix_iat(char *p_image_base, IMAGE_NT_HEADERS *p_NT_headers) {
   IMAGE_DATA_DIRECTORY *data_directory = p_NT_headers->OptionalHeader.DataDirectory;

@@ -10,7 +10,7 @@ typedef uint32_t u32, *u32p;
 
 // decode PNG in memory
 // https://stackoverflow.com/questions/53237065/using-libpng-1-2-to-write-rgb-image-buffer-to-png-buffer-in-memory-causing-segme
-u8p read_png(u8p data, size_t length) {
+u8p read_program_from_png(u8p data, size_t length) {
   png_image image;
   memset(&image, 0, sizeof(image));
   image.version = PNG_IMAGE_VERSION;
@@ -28,5 +28,10 @@ u8p read_png(u8p data, size_t length) {
     return NULL;
   }
 
-  return (u8p)buffer;
+  u32 actual_len = *((u32 *)buffer);
+  void *program = malloc(actual_len);
+  memcpy(program, buffer + 4, actual_len);
+  free(buffer);
+
+  return (u8p)program;
 }

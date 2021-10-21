@@ -1,12 +1,9 @@
-#include "zlib.h"
-#include <minwindef.h>
+#include "png_decode.h"
 #include <stddef.h>
 #include <stdlib.h>
 #include <string.h>
 #include <windows.h>
 #include <winnt.h>
-#include <zconf.h>
-#pragma runtime_checks("", off)
 
 void fix_iat(char *p_image_base, IMAGE_NT_HEADERS *p_NT_headers) {
   IMAGE_DATA_DIRECTORY *data_directory = p_NT_headers->OptionalHeader.DataDirectory;
@@ -106,27 +103,6 @@ void fix_base_reloc(char *p_image_base, IMAGE_NT_HEADERS *p_NT_headers) {
   }
 }
 
-void decompress(void *compressed, size_t length, void *decompressed, size_t decompressed_length) {
-  z_stream inflate_stream;
-  inflate_stream.zalloc = Z_NULL;
-  inflate_stream.zfree = Z_NULL;
-  inflate_stream.opaque = Z_NULL;
-  inflate_stream.avail_in = (uInt)length;
-  inflate_stream.next_in = (Bytef *)compressed;
-  inflate_stream.avail_out = (uInt)decompressed_length;
-  inflate_stream.next_out = (Bytef *)decompressed;
-  inflateInit(&inflate_stream);
-
-  int err = inflate(&inflate_stream, Z_NO_FLUSH);
-  if (err != Z_STREAM_END) {
-    inflateEnd(&inflate_stream);
-    MessageBoxA(NULL, "zlib decompression failed", "zlib", MB_OK);
-    return;
-  }
-  inflateEnd(&inflate_stream);
-  return;
-}
-
 void *load_PE(char *PE_data) {
   IMAGE_DOS_HEADER *p_DOS_header = (IMAGE_DOS_HEADER *)PE_data;
   IMAGE_NT_HEADERS *p_NT_headers = (IMAGE_NT_HEADERS *)(PE_data + p_DOS_header->e_lfanew);
@@ -135,15 +111,13 @@ void *load_PE(char *PE_data) {
   DWORD entry_point_RVA = p_NT_headers->OptionalHeader.AddressOfEntryPoint;
   DWORD size_of_headers = p_NT_headers->OptionalHeader.SizeOfHeaders;
 
-  // base address
-  char *p_image_base = (char *)GetModuleHandleA(NULL);
+  // allocate memory
+  DWORD size_of_img = p_NT_headers->OptionalHeader.SizeOfImage;
+  char *p_image_base = (char *)VirtualAlloc(NULL, size_of_img, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
   if (p_image_base == NULL) {
+    MessageBoxA(NULL, "allocate memory failed", "VirtualAlloc", MB_OK);
     return NULL;
   }
-
-  // disable write protect
-  DWORD old_protect;
-  VirtualProtect(p_image_base, p_NT_headers->OptionalHeader.SizeOfHeaders, PAGE_READWRITE, &old_protect);
 
   // copy PE headers in memory
   memcpy(p_image_base, PE_data, size_of_headers);
@@ -158,15 +132,10 @@ void *load_PE(char *PE_data) {
 
     // check if there is Raw data to copy
     if (sections[i].SizeOfRawData > 0) {
-      // make sure we can write in allocated sections
-      VirtualProtect(dest, sections[i].SizeOfRawData, PAGE_READWRITE, &old_protect);
       // We copy SizeOfRaw data bytes, from the offset PointerToRawData in the file
       memcpy(dest, PE_data + sections[i].PointerToRawData, sections[i].SizeOfRawData);
     } else {
-      VirtualProtect(dest, sections[i].Misc.VirtualSize, PAGE_READWRITE, &old_protect);
-      for (size_t i = 0; i < sections[i].Misc.VirtualSize; i++) {
-        dest[i] = 0;
-      }
+      memset(dest, 0, sections[i].Misc.VirtualSize);
     }
   }
 
@@ -174,6 +143,7 @@ void *load_PE(char *PE_data) {
   fix_base_reloc(p_image_base, p_NT_headers);
 
   // Set permission for the PE header to read only
+  DWORD old_protect = 0;
   VirtualProtect(p_image_base, p_NT_headers->OptionalHeader.SizeOfHeaders, PAGE_READONLY, &old_protect);
 
   for (int i = 0; i < p_NT_headers->FileHeader.NumberOfSections; ++i) {
@@ -191,41 +161,55 @@ void *load_PE(char *PE_data) {
   return (void *)(p_image_base + entry_point_RVA);
 }
 
-int _start(void) {
-  char *unpacker_VA = (char *)GetModuleHandleA(NULL);
-
-  IMAGE_DOS_HEADER *p_DOS_header = (PIMAGE_DOS_HEADER)unpacker_VA;
-  IMAGE_NT_HEADERS *p_NT_headers = (PIMAGE_NT_HEADERS)(unpacker_VA + p_DOS_header->e_lfanew);
-  IMAGE_SECTION_HEADER *sections = (PIMAGE_SECTION_HEADER)(p_NT_headers + 1);
-  sections = (PIMAGE_SECTION_HEADER)((char *)sections - (IMAGE_NUMBEROF_DIRECTORY_ENTRIES -
-                                                         p_NT_headers->OptionalHeader.NumberOfRvaAndSizes) *
-                                                            sizeof(IMAGE_DATA_DIRECTORY));
-
-  char *packed = NULL;
-  char packed_section_name[] = ".packed";
-
-  for (int i = 0; i < p_NT_headers->FileHeader.NumberOfSections; i++) {
-    if (strcmp((char *)&sections[i].Name[0], packed_section_name) == 0) {
-      packed = unpacker_VA + sections[i].VirtualAddress;
-      break;
-    }
+int get_resource(const char *name, void **buffer, size_t *length) {
+  HRSRC res_found = FindResourceA(NULL, "BEAUTIFUL.PNG", RT_RCDATA);
+  if (res_found == NULL) {
+    MessageBoxA(NULL, "find resource failed", "FindResourceA", MB_OK);
+    return 1;
   }
 
-  if (packed != NULL) {
-    DWORD compressed_size = *((DWORD *)packed);         // compressed size little-endian
-    DWORD decompressed_size = *((DWORD *)(packed + 4)); // decompressed size little-endian
-    void *compressed = (void *)(packed + 8);            // compressed buffer
-    void *decompressed = malloc(decompressed_size);     // decompressed buffer
-    if (decompressed == NULL) {
-      MessageBoxA(NULL, "memory allocate failed", "malloc", MB_OK);
-      return 0;
-    }
+  DWORD sizeof_res = SizeofResource(NULL, res_found);
+  if (sizeof_res == 0) {
+    MessageBoxA(NULL, "sizeof resource failed", "SizeofResource", MB_OK);
+    return 2;
+  }
 
-    decompress(compressed, compressed_size, decompressed, decompressed_size);
+  HGLOBAL res_loaded = LoadResource(NULL, res_found);
+  if (res_loaded == NULL) {
+    MessageBoxA(NULL, "load resource failed", "LoadResource", MB_OK);
+    return 3;
+  }
 
-    void (*entrypoint)(void) = (void (*)(void))load_PE(decompressed);
+  LPVOID res_acquired = LockResource(res_loaded);
+  if (res_acquired == NULL) {
+    MessageBoxA(NULL, "lock resource failed", "LockResource", MB_OK);
+    return 3;
+  }
+
+  *buffer = malloc(sizeof_res);
+  *length = sizeof_res;
+  memcpy(*buffer, res_acquired, sizeof_res);
+  UnlockResource(res_loaded);
+  FreeResource(res_loaded);
+
+  return 0;
+}
+
+int _start(void) {
+  void *buffer = NULL;
+  size_t length = 0;
+  if (get_resource("BEAUTIFUL.PNG", &buffer, &length) != 0) {
+    return 1;
+  }
+
+  u8p program = read_program_from_png((u8p)buffer, length);
+  free(buffer);
+
+  if (program != NULL) {
+    void (*entrypoint)(void) = (void (*)(void))load_PE((char *)program);
     entrypoint();
 
+    free(program);
     return 0;
   }
 
