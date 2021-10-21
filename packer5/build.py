@@ -1,7 +1,6 @@
 # %%
 from os import path
 import struct
-import zlib
 import png
 
 from lief import PE
