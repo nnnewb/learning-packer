@@ -1,0 +1,8 @@
+build
+__pycache__
+*.pyc
+*.exe
+*.o
+venv
+typings
+.cache

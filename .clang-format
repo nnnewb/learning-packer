@@ -1,0 +1,5 @@
+---
+BasedOnStyle: LLVM
+ColumnLimit: 120
+IndentPPDirectives: AfterHash
+AllowShortFunctionsOnASingleLine: Empty
