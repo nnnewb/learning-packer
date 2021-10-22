@@ -7,3 +7,5 @@ venv
 typings
 .cache
 *.png
+
+.clangd

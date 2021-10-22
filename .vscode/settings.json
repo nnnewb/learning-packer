@@ -14,6 +14,9 @@
         "**/*.o": true,
         "**/*.exe": true,
     },
+    "files.associations": {
+        ".clangd": "yaml"
+    },
     "cSpell.words": [
         "cflags"
     ]
