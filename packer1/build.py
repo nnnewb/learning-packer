@@ -21,10 +21,6 @@ compile_args = [
     '-m32',
     '-O2',
     '-Wall',
-    '-Wl,--entry=__start',
-    '-nodefaultlibs',
-    '-nostartfiles',
-    '-lkernel32',
     '-o',
     'loader.exe'
 ]
@@ -38,17 +34,4 @@ except CalledProcessError as e:
 
 loader = lief.PE.parse('loader.exe')
 
-# %%
-# add packed section
-with open('example.exe', 'rb') as f:
-    packed_section = lief.PE.Section('.packed')
-    packed_section.content = list(f.read())
-    packed_section.characteristics = (lief.PE.SECTION_CHARACTERISTICS.MEM_READ |
-                                      lief.PE.SECTION_CHARACTERISTICS.CNT_INITIALIZED_DATA)
-    loader.add_section(packed_section)
-
-# build output binary
-builder = lief.PE.Builder(loader)
-builder.build()
-builder.write('packed.exe')
-print('[+] create packed binary success.')
+print('[+] compilation success. Now you can run loader program "./loader.exe ./example.exe"')
