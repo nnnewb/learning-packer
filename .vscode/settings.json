@@ -18,6 +18,8 @@
         ".clangd": "yaml"
     },
     "cSpell.words": [
-        "cflags"
+        "cflags",
+        "lfanew",
+        "LPSTR"
     ]
 }
