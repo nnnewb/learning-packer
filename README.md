@@ -9,6 +9,7 @@
 3. 从内存加载不支持 ASLR 的 PE32 程序。
 4. 从内存加载 zlib 压缩过的 PE32 程序。
 5. 从资源加载编码为 PNG 灰度图的 PE32 程序。
+6. **WIP** 几种反调试技术。
 
 构造输出结果的 python 脚本也可以用 c++ 代码结合 LIEF 库，接口和逻辑都一样。
 
@@ -28,6 +29,7 @@ stubgen -p lief -o typings
 
 开发工具：
 
+- nasm
 - Python 3.8
 - MSYS2/mingw-w64-i686
 
@@ -50,7 +52,7 @@ C 第三方库：
 pacman -Sy mingw-w64-i686-zlib mingw-w64-i686-libpng
 ```
 
-注意需要把 `[/path/to/your/msys64]/mingw32/bin` 加入 `PATH` 环境变量。
+注意需要把 `nasm` 和 `[/path/to/your/msys64]/mingw32/bin` 加入 `PATH` 环境变量。
 
 ## 实验方式
 
