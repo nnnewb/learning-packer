@@ -72,3 +72,12 @@ void anti_debug_by_TF(void) {
     MessageBoxA(NULL, "debugger detected", "SEH", MB_OK);
   }
 }
+
+void anti_debug_by_CheckRemoteDebuggerPresent(void) {
+  BOOL isRemoteDebuggerPresent = FALSE;
+  if (CheckRemoteDebuggerPresent(GetCurrentProcess(), &isRemoteDebuggerPresent)) {
+    if (isRemoteDebuggerPresent == TRUE) {
+      MessageBoxA(NULL, "debugger detected", "CheckRemoteDebuggerPresent", MB_OK);
+    }
+  }
+}

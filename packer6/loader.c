@@ -10,6 +10,7 @@ int _start(void) {
   anti_debug_by_PEB_BeingDebugged();
   anti_debug_by_PEB_HeapFlags();
   anti_debug_by_TF();
+  anti_debug_by_CheckRemoteDebuggerPresent();
 
   char *unpacker_VA = (char *)GetModuleHandleA(NULL);
 
