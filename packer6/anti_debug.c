@@ -197,4 +197,5 @@ void anti_debug_by_HideFromDebugger(void) {
   }
 
   ntSetInfoThread(GetCurrentThread(), ThreadHideFromDebugger, NULL, 0);
+  // ... NtCreateThreadEx THREAD_CREATE_FLAGS_HIDE_FROM_DEBUGGER
 }
