@@ -9,3 +9,5 @@ typings
 *.png
 
 .clangd
+.vscode
+.idea
