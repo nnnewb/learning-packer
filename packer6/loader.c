@@ -6,6 +6,8 @@
 #include <winnt.h>
 
 int _start(void) {
+  // too powerful, can't debug
+  // anti_debug_by_HideFromDebugger();
   anti_debug_by_isDebuggerPresent();
   anti_debug_by_PEB_BeingDebugged();
   anti_debug_by_PEB_HeapFlags();

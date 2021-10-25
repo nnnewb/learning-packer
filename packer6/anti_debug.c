@@ -181,3 +181,20 @@ void anti_debug_by_seh(void) {
   //   }
   // }
 }
+
+typedef NTSTATUS(NTAPI *pfnNtSetInformationThread)(_In_ HANDLE ThreadHandle, _In_ ULONG ThreadInformationClass,
+                                                   _In_ PVOID ThreadInformation, _In_ ULONG ThreadInformationLength);
+void anti_debug_by_HideFromDebugger(void) {
+  HMODULE ntdll = LoadLibrary(TEXT("ntdll.dll"));
+  if (ntdll == NULL) {
+    abort();
+  }
+
+  pfnNtSetInformationThread ntSetInfoThread =
+      (pfnNtSetInformationThread)GetProcAddress(ntdll, "NtSetInformationThread");
+  if (ntSetInfoThread == NULL) {
+    abort();
+  }
+
+  ntSetInfoThread(GetCurrentThread(), ThreadHideFromDebugger, NULL, 0);
+}
