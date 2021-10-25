@@ -40,3 +40,30 @@ void anti_debug_by_PEB_HeapFlags(void) {
     MessageBoxA(NULL, "debugger detected", "PEB->_HEAP->HeapFlags,ForceFlags", MB_OK);
   }
 }
+
+BOOL SEHCaughtSingleStepException = FALSE;
+
+LONG CALLBACK exceptEx(_In_ EXCEPTION_POINTERS *lpEP) {
+  switch (lpEP->ExceptionRecord->ExceptionCode) {
+  case EXCEPTION_SINGLE_STEP:
+    return EXCEPTION_EXECUTE_HANDLER;
+  default:
+    return EXCEPTION_CONTINUE_SEARCH;
+  }
+}
+
+LONG NTAPI my_seh_handler(PEXCEPTION_POINTERS exceptionInfo) {
+  SEHCaughtSingleStepException = TRUE;
+  return EXCEPTION_CONTINUE_EXECUTION;
+}
+
+void anti_debug_by_TF(void) {
+  SEHCaughtSingleStepException = FALSE;
+  SetUnhandledExceptionFilter(exceptEx);
+  AddVectoredExceptionHandler(0, my_seh_handler);
+  RaiseInt1();
+  RemoveVectoredExceptionHandler(my_seh_handler);
+  if (SEHCaughtSingleStepException == FALSE) {
+    MessageBoxA(NULL, "debugger detected", "SEH", MB_OK);
+  }
+}
