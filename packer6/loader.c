@@ -8,6 +8,7 @@
 int _start(void) {
   anti_debug_by_isDebuggerPresent();
   anti_debug_by_PEB_BeingDebugged();
+  anti_debug_by_PEB_HeapFlags();
 
   char *unpacker_VA = (char *)GetModuleHandleA(NULL);
 

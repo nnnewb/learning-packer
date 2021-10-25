@@ -3,5 +3,6 @@
 
 void anti_debug_by_isDebuggerPresent(void);
 void anti_debug_by_PEB_BeingDebugged(void);
+void anti_debug_by_PEB_HeapFlags(void);
 
 #endif
