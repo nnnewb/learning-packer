@@ -2,6 +2,7 @@
 #include "assembly_utils.h"
 #include <debugapi.h>
 #include <processthreadsapi.h>
+#include <tlhelp32.h>
 #include <windows.h>
 
 void anti_debug_by_isDebuggerPresent(void) {
@@ -100,10 +101,49 @@ void anti_debug_by_NtQueryInformationProcess(void) {
     return;
   }
 
-  HANDLE procDebugObj = NULL;
-  status = ntQueryInfoProc(GetCurrentProcess(), ProcessDebugObjectHandle, &procDebugObj, sizeof(HANDLE), NULL);
-  if (status == 0 && NULL != procDebugObj) {
-    MessageBoxA(NULL, "debugger detected", "NtQueryInformationProcess(DebugObj)", MB_OK);
-    return;
+  // ... ProcessDebugObject
+  // ... ProcessDebugFlags
+}
+
+void anti_debug_by_NtQueryInformationProcess_BasicInformation(void) {
+  HMODULE ntdll = LoadLibrary(TEXT("ntdll.dll"));
+  if (ntdll == NULL) {
+    abort();
+  }
+
+  FARPROC ntQueryInfoProc = GetProcAddress(ntdll, "NtQueryInformationProcess");
+  if (ntQueryInfoProc == NULL) {
+    abort();
+  }
+
+  PROCESS_BASIC_INFORMATION info;
+  NTSTATUS status = ntQueryInfoProc(GetCurrentProcess(), ProcessBasicInformation, &info, sizeof(info), NULL);
+  if (status == 0) {
+    HANDLE hProcSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (hProcSnap == NULL) {
+      abort();
+    }
+
+    PROCESSENTRY32 pe32;
+    pe32.dwSize = sizeof(PROCESSENTRY32);
+    if (!Process32First(hProcSnap, &pe32)) {
+      abort();
+    }
+
+    do {
+      if (pe32.th32ProcessID == info.InheritedFromUniqueProcessId) {
+#ifdef UNICODE
+        if (wcscmp(L"devenv.exe", pe32.szExeFile) == 0 || wcscmp(L"x32dbg.exe", pe32.szExeFile) == 0 ||
+            wcscmp(L"x64dbg.exe", pe32.szExeFile) == 0 || wcscmp(L"ollydbg.exe", pe32.szExeFile) == 0) {
+#else
+        if (strcmp("devenv.exe", pe32.szExeFile) == 0 || strcmp("x32dbg.exe", pe32.szExeFile) == 0 ||
+            strcmp("x64dbg.exe", pe32.szExeFile) == 0 || strcmp("ollydbg.exe", pe32.szExeFile) == 0) {
+#endif
+          MessageBoxA(NULL, "debugger detected", "BasicInformation", MB_OK);
+          CloseHandle(hProcSnap);
+          return;
+        }
+      }
+    } while (Process32Next(hProcSnap, &pe32));
   }
 }
