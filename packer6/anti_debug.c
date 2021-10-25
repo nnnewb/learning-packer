@@ -147,3 +147,14 @@ void anti_debug_by_NtQueryInformationProcess_BasicInformation(void) {
     } while (Process32Next(hProcSnap, &pe32));
   }
 }
+
+// detect hardware breakpoint
+void anti_debug_by_debug_registers(void) {
+  CONTEXT ctx;
+  ctx.ContextFlags = CONTEXT_DEBUG_REGISTERS;
+  if (GetThreadContext(GetCurrentThread(), &ctx)) {
+    if (ctx.Dr0 != 0 || ctx.Dr1 != 0 || ctx.Dr2 != 0 || ctx.Dr3 != 0) {
+      MessageBoxA(NULL, "debugger detected", "Dr0-Dr3", MB_OK);
+    }
+  }
+}
