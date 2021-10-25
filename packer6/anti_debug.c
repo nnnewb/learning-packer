@@ -41,11 +41,13 @@ void anti_debug_by_PEB_HeapFlags(void) {
   }
 }
 
+// does program caught single step exception
 BOOL SEHCaughtSingleStepException = FALSE;
 
 LONG CALLBACK exceptEx(_In_ EXCEPTION_POINTERS *lpEP) {
   switch (lpEP->ExceptionRecord->ExceptionCode) {
   case EXCEPTION_SINGLE_STEP:
+    // handle single step exception if not handled by debugger
     return EXCEPTION_EXECUTE_HANDLER;
   default:
     return EXCEPTION_CONTINUE_SEARCH;
@@ -59,7 +61,10 @@ LONG NTAPI my_seh_handler(PEXCEPTION_POINTERS exceptionInfo) {
 
 void anti_debug_by_TF(void) {
   SEHCaughtSingleStepException = FALSE;
+  // https://docs.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-setunhandledexceptionfilter
   SetUnhandledExceptionFilter(exceptEx);
+  // https://docs.microsoft.com/zh-cn/windows/win32/api/errhandlingapi/nf-errhandlingapi-addvectoredexceptionhandler?redirectedfrom=MSDN
+  // https://docs.microsoft.com/en-us/windows/win32/api/winnt/nc-winnt-pvectored_exception_handler
   AddVectoredExceptionHandler(0, my_seh_handler);
   RaiseInt1();
   RemoveVectoredExceptionHandler(my_seh_handler);
