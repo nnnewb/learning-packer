@@ -11,6 +11,7 @@ int _start(void) {
   anti_debug_by_PEB_HeapFlags();
   anti_debug_by_TF();
   anti_debug_by_CheckRemoteDebuggerPresent();
+  anti_debug_by_NtQueryInformationProcess();
 
   char *unpacker_VA = (char *)GetModuleHandleA(NULL);
 

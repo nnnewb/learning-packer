@@ -6,5 +6,6 @@ void anti_debug_by_PEB_BeingDebugged(void);
 void anti_debug_by_PEB_HeapFlags(void);
 void anti_debug_by_TF(void);
 void anti_debug_by_CheckRemoteDebuggerPresent(void);
+void anti_debug_by_NtQueryInformationProcess(void);
 
 #endif

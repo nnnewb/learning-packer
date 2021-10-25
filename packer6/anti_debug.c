@@ -81,3 +81,21 @@ void anti_debug_by_CheckRemoteDebuggerPresent(void) {
     }
   }
 }
+
+void anti_debug_by_NtQueryInformationProcess(void) {
+  HMODULE ntdll = LoadLibrary(TEXT("ntdll.dll"));
+  if (ntdll == NULL) {
+    abort();
+  }
+
+  FARPROC ntQueryInfoProc = GetProcAddress(ntdll, "NtQueryInformationProcess");
+  if (ntQueryInfoProc == NULL) {
+    abort();
+  }
+
+  DWORD isDebuggerPresent = FALSE;
+  NTSTATUS status = ntQueryInfoProc(GetCurrentProcess(), ProcessDebugPort, &isDebuggerPresent, sizeof(DWORD), NULL);
+  if (status == 0 && isDebuggerPresent) {
+    MessageBoxA(NULL, "debugger detected", "NtQueryInformationProcess", MB_OK);
+  }
+}
