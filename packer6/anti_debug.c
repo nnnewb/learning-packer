@@ -158,3 +158,26 @@ void anti_debug_by_debug_registers(void) {
     }
   }
 }
+
+// BOOL SEHCapture = FALSE;
+
+// EXCEPTION_DISPOSITION sehRoutine(PEXCEPTION_RECORD exceptionRecord, PVOID establishFrame, PCONTEXT contextRecord,
+//                                  PVOID dispatcherContext) {
+//   MessageBoxA(NULL, "SEH Handler", "SEH", MB_OK);
+//   SEHCapture = TRUE;
+//   contextRecord->Eip += 1;
+//   return ExceptionContinueExecution;
+// }
+
+// TODO: not work. don't known why.
+void anti_debug_by_seh(void) {
+  // SEHCapture = FALSE;
+  // __try1(sehRoutine) {
+  //   RaiseInt1();
+  // }
+  // __except1 {
+  //   if (SEHCapture == FALSE) {
+  //     MessageBoxA(NULL, "debugger detected", "SEH try except", MB_OK);
+  //   }
+  // }
+}
