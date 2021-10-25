@@ -97,5 +97,13 @@ void anti_debug_by_NtQueryInformationProcess(void) {
   NTSTATUS status = ntQueryInfoProc(GetCurrentProcess(), ProcessDebugPort, &isDebuggerPresent, sizeof(DWORD), NULL);
   if (status == 0 && isDebuggerPresent) {
     MessageBoxA(NULL, "debugger detected", "NtQueryInformationProcess", MB_OK);
+    return;
+  }
+
+  HANDLE procDebugObj = NULL;
+  status = ntQueryInfoProc(GetCurrentProcess(), ProcessDebugObjectHandle, &procDebugObj, sizeof(HANDLE), NULL);
+  if (status == 0 && NULL != procDebugObj) {
+    MessageBoxA(NULL, "debugger detected", "NtQueryInformationProcess(DebugObj)", MB_OK);
+    return;
   }
 }
