@@ -58,15 +58,13 @@ void anti_debug_by_PEB_HeapFlags(void) {
   }
 }
 
-// does program caught single step exception
 BOOL volatile VEH_INT1_isDebuggerPresent = FALSE;
 
 LONG CALLBACK VEH_INT1_UnhandledExceptionFilter(_In_ EXCEPTION_POINTERS *lpEP) {
   switch (lpEP->ExceptionRecord->ExceptionCode) {
   case EXCEPTION_SINGLE_STEP:
-    VEH_INT1_isDebuggerPresent = FALSE;
-    MessageBoxA(NULL, "unhandled INT1", "VEH INT1", MB_OK);
     // handle single step exception if not handled by debugger
+    VEH_INT1_isDebuggerPresent = FALSE;
     return EXCEPTION_CONTINUE_EXECUTION;
   default:
     return EXCEPTION_CONTINUE_SEARCH;
