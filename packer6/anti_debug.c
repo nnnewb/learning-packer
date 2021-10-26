@@ -4,6 +4,7 @@
 #include <processthreadsapi.h>
 #include <tlhelp32.h>
 #include <windows.h>
+#include <winternl.h>
 
 void anti_debug_by_isDebuggerPresent(void) {
   if (IsDebuggerPresent() == TRUE) {
@@ -15,6 +16,21 @@ void anti_debug_by_PEB_BeingDebugged(void) {
   PPEB peb = GetPEB();
   if (peb->BeingDebugged != 0) {
     MessageBoxA(NULL, "debugger detected", "PEB->BeingDebugged", MB_OK);
+  }
+}
+
+void anti_debug_by_RtlGetNtGlobalFlags(void) {
+  // 两种方式，直接读内存或者用undocumented接口
+  PPEB peb = GetPEB();
+  if (*(PULONG)((PBYTE)peb + 0x68) & (0x20 | 0x40)) {
+    MessageBoxA(NULL, "debugger detected", "PEB->NtGlobalFlag", MB_OK);
+  }
+  // 或者...
+  HMODULE ntdll = LoadLibraryA("ntdll.dll");
+  FARPROC proc = GetProcAddress(ntdll, "RtlGetNtGlobalFlags");
+  typedef ULONG (*RtlGetNtGlobalFlags_t)(void);
+  if (((RtlGetNtGlobalFlags_t)proc)() & (0x20 | 0x40)) {
+    MessageBoxA(NULL, "debugger detected", "RtlGetNtGlobalFlags", MB_OK);
   }
 }
 
