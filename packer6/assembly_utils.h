@@ -7,8 +7,9 @@
 extern "C" {
 #endif
 
-extern PPEB GetPEB();
-extern void RaiseInt1();
+extern PPEB GetPEB(void);
+extern void RaiseInt1(void);
+extern void RaiseInt3(void);
 
 #ifdef __cplusplus
 }

@@ -59,34 +59,52 @@ void anti_debug_by_PEB_HeapFlags(void) {
 }
 
 // does program caught single step exception
-BOOL SEHCaughtSingleStepException = FALSE;
+BOOL volatile VEH_INT1_isDebuggerPresent = FALSE;
 
-LONG CALLBACK exceptEx(_In_ EXCEPTION_POINTERS *lpEP) {
+LONG CALLBACK VEH_INT1_UnhandledExceptionFilter(_In_ EXCEPTION_POINTERS *lpEP) {
   switch (lpEP->ExceptionRecord->ExceptionCode) {
   case EXCEPTION_SINGLE_STEP:
+    VEH_INT1_isDebuggerPresent = FALSE;
+    MessageBoxA(NULL, "unhandled INT1", "VEH INT1", MB_OK);
     // handle single step exception if not handled by debugger
-    return EXCEPTION_EXECUTE_HANDLER;
+    return EXCEPTION_CONTINUE_EXECUTION;
   default:
     return EXCEPTION_CONTINUE_SEARCH;
   }
 }
 
-LONG NTAPI my_seh_handler(PEXCEPTION_POINTERS exceptionInfo) {
-  SEHCaughtSingleStepException = TRUE;
-  return EXCEPTION_CONTINUE_EXECUTION;
-}
-
-void anti_debug_by_TF(void) {
-  SEHCaughtSingleStepException = FALSE;
+void anti_debug_by_VEH_INT1(void) {
+  VEH_INT1_isDebuggerPresent = TRUE;
   // https://docs.microsoft.com/en-us/windows/win32/api/errhandlingapi/nf-errhandlingapi-setunhandledexceptionfilter
-  SetUnhandledExceptionFilter(exceptEx);
+  SetUnhandledExceptionFilter(VEH_INT1_UnhandledExceptionFilter);
   // https://docs.microsoft.com/zh-cn/windows/win32/api/errhandlingapi/nf-errhandlingapi-addvectoredexceptionhandler?redirectedfrom=MSDN
   // https://docs.microsoft.com/en-us/windows/win32/api/winnt/nc-winnt-pvectored_exception_handler
-  AddVectoredExceptionHandler(0, my_seh_handler);
   RaiseInt1();
-  RemoveVectoredExceptionHandler(my_seh_handler);
-  if (SEHCaughtSingleStepException == FALSE) {
-    MessageBoxA(NULL, "debugger detected", "SEH", MB_OK);
+  if (VEH_INT1_isDebuggerPresent == TRUE) {
+    MessageBoxA(NULL, "debugger detected", "VEH INT1", MB_OK);
+  }
+}
+
+BOOL volatile VEH_INT3_isDebuggerPresent = FALSE;
+
+LONG CALLBACK VEH_INT3_UnhandledExceptionFilter(_In_ EXCEPTION_POINTERS *lpEP) {
+  switch (lpEP->ExceptionRecord->ExceptionCode) {
+  case EXCEPTION_BREAKPOINT:
+    // handle single step exception if not handled by debugger
+    VEH_INT3_isDebuggerPresent = FALSE;
+    lpEP->ContextRecord->Eip += 1;
+    return EXCEPTION_CONTINUE_EXECUTION;
+  default:
+    return EXCEPTION_CONTINUE_SEARCH;
+  }
+}
+
+void anti_debug_by_VEH_INT3(void) {
+  VEH_INT3_isDebuggerPresent = TRUE;
+  SetUnhandledExceptionFilter(VEH_INT3_UnhandledExceptionFilter);
+  RaiseInt3();
+  if (VEH_INT3_isDebuggerPresent == TRUE) {
+    MessageBoxA(NULL, "debugger detected", "SEH INT3", MB_OK);
   }
 }
 
@@ -121,6 +139,12 @@ void anti_debug_by_NtQueryInformationProcess(void) {
   // ... ProcessDebugFlags
 }
 
+#ifdef UNICODE
+#  define MY_STRCMP wcscmp
+#else
+#  define MY_STRCMP strcmp
+#endif
+
 void anti_debug_by_NtQueryInformationProcess_BasicInformation(void) {
   HMODULE ntdll = LoadLibrary(TEXT("ntdll.dll"));
   if (ntdll == NULL) {
@@ -148,13 +172,8 @@ void anti_debug_by_NtQueryInformationProcess_BasicInformation(void) {
 
     do {
       if (pe32.th32ProcessID == info.InheritedFromUniqueProcessId) {
-#ifdef UNICODE
-        if (wcscmp(L"devenv.exe", pe32.szExeFile) == 0 || wcscmp(L"x32dbg.exe", pe32.szExeFile) == 0 ||
-            wcscmp(L"x64dbg.exe", pe32.szExeFile) == 0 || wcscmp(L"ollydbg.exe", pe32.szExeFile) == 0) {
-#else
-        if (strcmp("devenv.exe", pe32.szExeFile) == 0 || strcmp("x32dbg.exe", pe32.szExeFile) == 0 ||
-            strcmp("x64dbg.exe", pe32.szExeFile) == 0 || strcmp("ollydbg.exe", pe32.szExeFile) == 0) {
-#endif
+        if (MY_STRCMP(TEXT("devenv.exe"), pe32.szExeFile) == 0 || MY_STRCMP(TEXT("x32dbg.exe"), pe32.szExeFile) == 0 ||
+            MY_STRCMP(TEXT("x64dbg.exe"), pe32.szExeFile) == 0 || MY_STRCMP(TEXT("ollydbg.exe"), pe32.szExeFile) == 0) {
           MessageBoxA(NULL, "debugger detected", "BasicInformation", MB_OK);
           CloseHandle(hProcSnap);
           return;
@@ -173,29 +192,6 @@ void anti_debug_by_debug_registers(void) {
       MessageBoxA(NULL, "debugger detected", "Dr0-Dr3", MB_OK);
     }
   }
-}
-
-// BOOL SEHCapture = FALSE;
-
-// EXCEPTION_DISPOSITION sehRoutine(PEXCEPTION_RECORD exceptionRecord, PVOID establishFrame, PCONTEXT contextRecord,
-//                                  PVOID dispatcherContext) {
-//   MessageBoxA(NULL, "SEH Handler", "SEH", MB_OK);
-//   SEHCapture = TRUE;
-//   contextRecord->Eip += 1;
-//   return ExceptionContinueExecution;
-// }
-
-// TODO: not work. don't known why.
-void anti_debug_by_seh(void) {
-  // SEHCapture = FALSE;
-  // __try1(sehRoutine) {
-  //   RaiseInt1();
-  // }
-  // __except1 {
-  //   if (SEHCapture == FALSE) {
-  //     MessageBoxA(NULL, "debugger detected", "SEH try except", MB_OK);
-  //   }
-  // }
 }
 
 typedef NTSTATUS(NTAPI *pfnNtSetInformationThread)(_In_ HANDLE ThreadHandle, _In_ ULONG ThreadInformationClass,

@@ -8,16 +8,16 @@
 int _start(void) {
   // too powerful, can't debug
   // anti_debug_by_HideFromDebugger();
-  anti_debug_by_RtlGetNtGlobalFlags();
-  anti_debug_by_isDebuggerPresent();
-  anti_debug_by_PEB_BeingDebugged();
-  anti_debug_by_PEB_HeapFlags();
-  anti_debug_by_TF();
-  anti_debug_by_CheckRemoteDebuggerPresent();
-  anti_debug_by_NtQueryInformationProcess();
-  anti_debug_by_NtQueryInformationProcess_BasicInformation();
-  anti_debug_by_debug_registers();
-  anti_debug_by_seh();
+  // anti_debug_by_RtlGetNtGlobalFlags();
+  // anti_debug_by_isDebuggerPresent();
+  // anti_debug_by_PEB_BeingDebugged();
+  // anti_debug_by_PEB_HeapFlags();
+  // anti_debug_by_CheckRemoteDebuggerPresent();
+  // anti_debug_by_NtQueryInformationProcess();
+  // anti_debug_by_NtQueryInformationProcess_BasicInformation();
+  // anti_debug_by_debug_registers();
+  // anti_debug_by_VEH_INT1();
+  anti_debug_by_VEH_INT3();
 
   char *unpacker_VA = (char *)GetModuleHandleA(NULL);
 
