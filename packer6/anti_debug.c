@@ -121,6 +121,7 @@ LONG CALLBACK VEH_OutputDebugStringException_UnhandledExceptionFilter(_In_ EXCEP
   }
 }
 
+// TODO: somehow not work on x32dbg
 void anti_debug_by_VEH_OutputDebugException(void) {
   ULONG_PTR args[4] = {0, 0, 0, 0};
   args[0] = (ULONG_PTR)wcslen(L"debug") + 1;
@@ -134,7 +135,6 @@ void anti_debug_by_VEH_OutputDebugException(void) {
   }
 }
 
-// TODO: somehow not work on x32dbg
 LONG CALLBACK VEH_INVALID_HANDLE_UnhandledExceptionFilter(_In_ EXCEPTION_POINTERS *lpEP) {
   switch (lpEP->ExceptionRecord->ExceptionCode) {
   case EXCEPTION_INVALID_HANDLE:
