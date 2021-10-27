@@ -3,6 +3,7 @@
 #include <debugapi.h>
 #include <processthreadsapi.h>
 #include <tlhelp32.h>
+#include <wchar.h>
 #include <windows.h>
 #include <winternl.h>
 
@@ -102,9 +103,37 @@ void anti_debug_by_VEH_INT3(void) {
   SetUnhandledExceptionFilter(VEH_INT3_UnhandledExceptionFilter);
   RaiseInt3();
   if (VEH_INT3_isDebuggerPresent == TRUE) {
-    MessageBoxA(NULL, "debugger detected", "SEH INT3", MB_OK);
+    MessageBoxA(NULL, "debugger detected", "VEH INT3", MB_OK);
   }
 }
+
+// TODO: NOT WORK
+//
+// BOOL VEH_OutputDebugStringException_isDebugPresent = FALSE;
+
+// LONG CALLBACK VEH_OutputDebugStringException_UnhandledExceptionFilter(_In_ EXCEPTION_POINTERS *lpEP) {
+//   switch (lpEP->ExceptionRecord->ExceptionCode) {
+//   case EXCEPTION_BREAKPOINT:
+//     // handle single step exception if not handled by debugger
+//     VEH_INT3_isDebuggerPresent = FALSE;
+//     return EXCEPTION_CONTINUE_EXECUTION;
+//   default:
+//     return EXCEPTION_CONTINUE_SEARCH;
+//   }
+// }
+
+// void anti_debug_by_VEH_OutputDebugException(void) {
+//   ULONG_PTR args[4] = {0, 0, 0, 0};
+//   args[0] = (ULONG_PTR)wcslen(L"debug") + 1;
+//   args[1] = (ULONG_PTR)L"debug";
+//   AddVectoredExceptionHandler(0, VEH_OutputDebugStringException_UnhandledExceptionFilter);
+//   VEH_OutputDebugStringException_isDebugPresent = TRUE;
+//   RaiseException(DBG_PRINTEXCEPTION_WIDE_C, 0, 4, args);
+//   RemoveVectoredExceptionHandler(VEH_OutputDebugStringException_UnhandledExceptionFilter);
+//   if (VEH_OutputDebugStringException_isDebugPresent == TRUE) {
+//     MessageBoxA(NULL, "debugger detected", "OutputDebugString", MB_OK);
+//   }
+// }
 
 void anti_debug_by_CheckRemoteDebuggerPresent(void) {
   BOOL isRemoteDebuggerPresent = FALSE;

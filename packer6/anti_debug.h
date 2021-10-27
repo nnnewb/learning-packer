@@ -12,5 +12,7 @@ void anti_debug_by_debug_registers(void);
 void anti_debug_by_HideFromDebugger(void);
 void anti_debug_by_VEH_INT1(void);
 void anti_debug_by_VEH_INT3(void);
+// TODO: NOT WORK
+// void anti_debug_by_VEH_OutputDebugException(void);
 
 #endif

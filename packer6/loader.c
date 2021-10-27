@@ -17,7 +17,9 @@ int _start(void) {
   // anti_debug_by_NtQueryInformationProcess_BasicInformation();
   // anti_debug_by_debug_registers();
   // anti_debug_by_VEH_INT1();
-  anti_debug_by_VEH_INT3();
+  // anti_debug_by_VEH_INT3();
+  // TODO: NOT WORK
+  // anti_debug_by_VEH_OutputDebugException();
 
   char *unpacker_VA = (char *)GetModuleHandleA(NULL);
 
