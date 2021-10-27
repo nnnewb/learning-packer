@@ -15,19 +15,11 @@ binary = lief.PE.parse('example.exe')
 print('[+] compile origin demo program success.')
 
 # %%
-# compile loader program
-try:
-    check_output('nasm assembly_utils.asm -f win32 -o assembly_utils.o', shell=True,stderr=STDOUT)
-    print('[+] assembly utils compilation success.')
-except CalledProcessError as e:
-    print(f'[!] assembly utils compilation failed, {e.stdout.decode()}')
-    raise
-
 compile_args = [
     'loader.c',
     'load_pe.c',
     'anti_debug.c',
-    'assembly_utils.o',
+    'assembly_utils.s',
     '-m32',
     '-O2',
     '-Wall',
