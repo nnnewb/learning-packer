@@ -107,33 +107,50 @@ void anti_debug_by_VEH_INT3(void) {
   }
 }
 
-// TODO: NOT WORK
-//
-// BOOL VEH_OutputDebugStringException_isDebugPresent = FALSE;
+// TODO: somehow not work on x32dbg
+BOOL VEH_OutputDebugStringException_isDebuggerPresent = FALSE;
 
-// LONG CALLBACK VEH_OutputDebugStringException_UnhandledExceptionFilter(_In_ EXCEPTION_POINTERS *lpEP) {
-//   switch (lpEP->ExceptionRecord->ExceptionCode) {
-//   case EXCEPTION_BREAKPOINT:
-//     // handle single step exception if not handled by debugger
-//     VEH_INT3_isDebuggerPresent = FALSE;
-//     return EXCEPTION_CONTINUE_EXECUTION;
-//   default:
-//     return EXCEPTION_CONTINUE_SEARCH;
-//   }
-// }
+LONG CALLBACK VEH_OutputDebugStringException_UnhandledExceptionFilter(_In_ EXCEPTION_POINTERS *lpEP) {
+  switch (lpEP->ExceptionRecord->ExceptionCode) {
+  case DBG_PRINTEXCEPTION_WIDE_C:
+    // handle exception if not handled by debugger
+    VEH_OutputDebugStringException_isDebuggerPresent = FALSE;
+    return EXCEPTION_CONTINUE_EXECUTION;
+  default:
+    return EXCEPTION_CONTINUE_SEARCH;
+  }
+}
 
-// void anti_debug_by_VEH_OutputDebugException(void) {
-//   ULONG_PTR args[4] = {0, 0, 0, 0};
-//   args[0] = (ULONG_PTR)wcslen(L"debug") + 1;
-//   args[1] = (ULONG_PTR)L"debug";
-//   AddVectoredExceptionHandler(0, VEH_OutputDebugStringException_UnhandledExceptionFilter);
-//   VEH_OutputDebugStringException_isDebugPresent = TRUE;
-//   RaiseException(DBG_PRINTEXCEPTION_WIDE_C, 0, 4, args);
-//   RemoveVectoredExceptionHandler(VEH_OutputDebugStringException_UnhandledExceptionFilter);
-//   if (VEH_OutputDebugStringException_isDebugPresent == TRUE) {
-//     MessageBoxA(NULL, "debugger detected", "OutputDebugString", MB_OK);
-//   }
-// }
+void anti_debug_by_VEH_OutputDebugException(void) {
+  ULONG_PTR args[4] = {0, 0, 0, 0};
+  args[0] = (ULONG_PTR)wcslen(L"debug") + 1;
+  args[1] = (ULONG_PTR)L"debug";
+  AddVectoredExceptionHandler(0, VEH_OutputDebugStringException_UnhandledExceptionFilter);
+  VEH_OutputDebugStringException_isDebuggerPresent = TRUE;
+  RaiseException(DBG_PRINTEXCEPTION_WIDE_C, 0, 4, args);
+  RemoveVectoredExceptionHandler(VEH_OutputDebugStringException_UnhandledExceptionFilter);
+  if (VEH_OutputDebugStringException_isDebuggerPresent == TRUE) {
+    MessageBoxA(NULL, "debugger detected", "OutputDebugString", MB_OK);
+  }
+}
+
+// TODO: somehow not work on x32dbg
+LONG CALLBACK VEH_INVALID_HANDLE_UnhandledExceptionFilter(_In_ EXCEPTION_POINTERS *lpEP) {
+  switch (lpEP->ExceptionRecord->ExceptionCode) {
+  case EXCEPTION_INVALID_HANDLE:
+    // if debug present
+    MessageBoxA(NULL, "debugger detected", "INVALID HANDLE", MB_OK);
+    return EXCEPTION_CONTINUE_EXECUTION;
+  default:
+    return EXCEPTION_CONTINUE_SEARCH;
+  }
+}
+
+void anti_debug_by_VEH_INVALID_HANDLE(void) {
+  AddVectoredExceptionHandler(0, VEH_INVALID_HANDLE_UnhandledExceptionFilter);
+  CloseHandle((HANDLE)0xBAAD);
+  RemoveVectoredExceptionHandler(VEH_INVALID_HANDLE_UnhandledExceptionFilter);
+}
 
 void anti_debug_by_CheckRemoteDebuggerPresent(void) {
   BOOL isRemoteDebuggerPresent = FALSE;

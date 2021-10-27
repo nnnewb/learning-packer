@@ -12,9 +12,10 @@ void anti_debug_by_debug_registers(void);
 void anti_debug_by_HideFromDebugger(void);
 void anti_debug_by_VEH_INT1(void);
 void anti_debug_by_VEH_INT3(void);
-// TODO: somehow not work on windows 10, need more test.
+void anti_debug_by_VEH_INVALID_HANDLE(void);
+// TODO: somehow not work on windows 10/MinGW, need more test.
 void anti_debug_by_SetLastError(void);
 // TODO: NOT WORK
-// void anti_debug_by_VEH_OutputDebugException(void);
+void anti_debug_by_VEH_OutputDebugException(void);
 
 #endif
