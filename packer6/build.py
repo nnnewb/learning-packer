@@ -19,7 +19,7 @@ compile_args = [
     'loader.c',
     'load_pe.c',
     'anti_debug.c',
-    'assembly_utils.s',
+    'assembly_utils.c',
     '-m32',
     '-O2',
     '-Wall',
