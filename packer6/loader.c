@@ -20,9 +20,10 @@ int _start(void) {
   // anti_debug_by_VEH_INT3();
   // TODO: somehow not work on x32dbg
   // anti_debug_by_VEH_OutputDebugException();
-  anti_debug_by_VEH_INVALID_HANDLE();
+  // anti_debug_by_VEH_INVALID_HANDLE();
   // TODO: somehow not work on windows 10/MinGW, need more test.
   // anti_debug_by_SetLastError();
+  anti_debug_by_SoftwareBreakPoint((PBYTE)&load_PE);
 
   char *unpacker_VA = (char *)GetModuleHandleA(NULL);
 

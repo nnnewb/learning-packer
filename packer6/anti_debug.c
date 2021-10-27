@@ -264,3 +264,10 @@ void anti_debug_by_SetLastError(void) {
     MessageBoxA(NULL, "debugger detected", "Set/Get LastError", MB_OK);
   }
 }
+
+// detect 0xcc interrupt code
+void anti_debug_by_SoftwareBreakPoint(PBYTE addr) {
+  if (*addr == 0xcc) {
+    MessageBoxA(NULL, "debugger detected", "SoftwareBreakpoint", MB_OK);
+  }
+}

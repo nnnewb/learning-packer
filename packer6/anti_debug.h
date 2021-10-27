@@ -1,6 +1,8 @@
 #ifndef ANTI_DEBUG_H_
 #define ANTI_DEBUG_H_
 
+#include <windows.h>
+
 void anti_debug_by_isDebuggerPresent(void);
 void anti_debug_by_PEB_BeingDebugged(void);
 void anti_debug_by_RtlGetNtGlobalFlags(void);
@@ -17,5 +19,6 @@ void anti_debug_by_VEH_INVALID_HANDLE(void);
 void anti_debug_by_VEH_OutputDebugException(void);
 // TODO: somehow not work on windows 10/MinGW, need more test.
 void anti_debug_by_SetLastError(void);
+void anti_debug_by_SoftwareBreakPoint(PBYTE addr);
 
 #endif
