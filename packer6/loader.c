@@ -18,6 +18,8 @@ int _start(void) {
   // anti_debug_by_debug_registers();
   // anti_debug_by_VEH_INT1();
   // anti_debug_by_VEH_INT3();
+  // TODO: somehow not work on windows 10, need more test.
+  anti_debug_by_SetLastError();
   // TODO: NOT WORK
   // anti_debug_by_VEH_OutputDebugException();
 

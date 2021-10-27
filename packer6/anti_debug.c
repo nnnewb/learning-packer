@@ -238,3 +238,12 @@ void anti_debug_by_HideFromDebugger(void) {
   ntSetInfoThread(GetCurrentThread(), ThreadHideFromDebugger, NULL, 0);
   // ... NtCreateThreadEx THREAD_CREATE_FLAGS_HIDE_FROM_DEBUGGER
 }
+
+// TODO: somehow not work on windows 10, need more test.
+void anti_debug_by_SetLastError(void) {
+  SetLastError(0x1234);
+  OutputDebugString(TEXT("Hello Debugger!"));
+  if (GetLastError() == 0x1234) {
+    MessageBoxA(NULL, "debugger detected", "Set/Get LastError", MB_OK);
+  }
+}
