@@ -15,7 +15,7 @@ int _start(void) {
   // anti_debug_by_CheckRemoteDebuggerPresent();
   // anti_debug_by_NtQueryInformationProcess();
   // anti_debug_by_NtQueryInformationProcess_BasicInformation();
-  // anti_debug_by_debug_registers();
+  // anti_debug_by_DebugRegister();
   // anti_debug_by_VEH_INT1();
   // anti_debug_by_VEH_INT3();
   // TODO: somehow not work on x32dbg

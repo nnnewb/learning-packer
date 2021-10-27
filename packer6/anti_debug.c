@@ -228,7 +228,7 @@ void anti_debug_by_NtQueryInformationProcess_BasicInformation(void) {
 }
 
 // detect hardware breakpoint
-void anti_debug_by_debug_registers(void) {
+void anti_debug_by_DebugRegister(void) {
   CONTEXT ctx;
   ctx.ContextFlags = CONTEXT_DEBUG_REGISTERS;
   if (GetThreadContext(GetCurrentThread(), &ctx)) {
