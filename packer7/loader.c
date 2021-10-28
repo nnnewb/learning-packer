@@ -8,6 +8,7 @@
 
 int _start(void) {
   ANTI_LINEAR_DISASSEMBLE_ALGORITHM_1;
+  ANTI_CONTROLFLOW_DISASSEMBLE_ALGORITHM_1;
 
   char *unpacker_VA = (char *)GetModuleHandleA(NULL);
 
