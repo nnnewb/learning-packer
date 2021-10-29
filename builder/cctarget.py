@@ -31,10 +31,27 @@ class _GccSrcDepProb:
                 output = proc.stdout.decode(locale.getpreferredencoding())
                 raise CompilerFeatureProbeFail(f'source dependencies probe fail: {output}')
 
+        dependencies = []
         with open(self.dep_path, 'r', encoding=locale.getpreferredencoding()) as f:
-            line = f.readline()
-            _, dependencies = line.split(':', 1)
-            return [d.strip() for d in dependencies.strip().split(' ')]
+            first = True
+            for line in f:
+                if first is True:
+                    _, paths = line.split(':', 1)
+                else:
+                    paths = line
+
+                valid_dependencies = filter(lambda s: bool(s), map(lambda s: s.strip(), paths.strip().split(' ')))
+                for src_dep_path in valid_dependencies:
+                    if src_dep_path[-1] == '\\':
+                        src_dep_path = src_dep_path[:-1].strip()
+
+                    if src_dep_path:
+                        dependencies.append(src_dep_path)
+
+                if line.endswith('\\'):
+                    continue
+
+        return dependencies
 
 
 class _CCSource:
@@ -108,8 +125,8 @@ class _CCBuilder:
     def need_rebuild(self):
         if not path.exists(self._output):
             return True
-        mtime = lstat(self._output).st_mtime_ns
-        return any(map(lambda src: src._src_modified_at >= mtime, self._sources))
+
+        return any(map(lambda src: src.need_recompile, self._sources))
 
     def _compile(self):
         for src in self._sources:
