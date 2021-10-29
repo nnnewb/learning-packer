@@ -2,14 +2,15 @@
 
 ## 介绍
 
-依次介绍案例的主题。
+各案例的主题：
 
 1. 基本的 PE32 程序加载。
 2. 从内存加载 PE32 程序。
 3. 从内存加载不支持 ASLR 的 PE32 程序。
 4. 从内存加载 zlib 压缩过的 PE32 程序。
 5. 从资源加载编码为 PNG 灰度图的 PE32 程序。
-6. **WIP** 几种反调试技术。
+6. 几种反调试技术。
+7. **WIP** 关于反反汇编(花指令)技术。
 
 构造输出结果的 python 脚本也可以用 c++ 代码结合 LIEF 库，接口和逻辑都一样。
 
@@ -67,3 +68,9 @@ cd packer4
 python build.py
 ./packed.exe
 ```
+
+## LICENSE
+
+MIT License
+
+Copyright (c) 2021 weak_ptr [<weak_ptr@outlook.com>](mailto:weak_ptr@outlook.com)
