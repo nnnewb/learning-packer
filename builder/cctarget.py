@@ -11,23 +11,58 @@ from logging import Logger, debug, getLogger
 _CC_LOGGER: Logger = getLogger('CC')
 
 
-class _CCSource:
-    def __init__(self, path, compiler, flags, output) -> None:
-        self._src_path = path
-        self._compiler = compiler
-        self._flags = flags
-        self._obj_path = output
-
-    @staticmethod
-    def is_cpp(filename: str):
-        return re.match(r'.*?\.(cc|cpp|cxx)', filename) is not None
+class _GccSrcDepProb:
+    def __init__(self, src_path: str, dep_path: str) -> None:
+        self.src_path = src_path
+        self.dep_path = dep_path
 
     @property
-    def obj_st_mtime_ns(self):
+    def need_reprobe(self):
+        if not path.exists(self.dep_path):
+            return True
+
+        return lstat(self.src_path).st_mtime_ns >= lstat(self.dep_path).st_mtime_ns
+
+    def probe(self):
+        if self.need_reprobe:
+            cmd = ' '.join(['gcc', self.src_path, '-c', '-MMD', '-MF', self.dep_path])
+            proc = run(cmd, shell=True, stdout=PIPE, stderr=STDOUT)
+            if proc.returncode != 0:
+                output = proc.stdout.decode(locale.getpreferredencoding())
+                raise CompilerFeatureProbeFail(f'source dependencies probe fail: {output}')
+
+        with open(self.dep_path, 'r', encoding=locale.getpreferredencoding()) as f:
+            line = f.readline()
+            _, dependencies = line.split(':', 1)
+            return [d.strip() for d in dependencies.strip().split(' ')]
+
+
+class _CCSource:
+    def __init__(self, src_path, compiler, compile_flags, obj_path, dep_path):
+        """C/C++ source file abstraction
+
+        Args:
+            src_path (str): source file absolute path
+            compiler (str): compiler absolute path
+            compile_flags (List[str]): compiler flags
+            obj_path (str): object file absolute path
+            dep_path (str): depend definition absolute path
+        """
+        self._compiler = compiler
+        self._src_path = src_path
+        self._compile_flags = compile_flags
+        self._obj_path = obj_path
+        self._dep_path = dep_path
+        # TODO: 应该根据compiler选择
+        self._is_cpp = re.match(r'.*?\.(cc|cpp|cxx)', self._src_path) is not None
+        self._dependencies_probe = _GccSrcDepProb(src_path, self._dep_path)
+
+    @property
+    def _obj_modified_at(self):
         return lstat(self._obj_path).st_mtime_ns
 
     @property
-    def src_st_mtime_ns(self):
+    def _src_modified_at(self):
         return lstat(self._src_path).st_mtime_ns
 
     @property
@@ -40,22 +75,23 @@ class _CCSource:
 
     @property
     def need_recompile(self):
-        # TODO: 要跟踪所有头文件来确定是否需要重新编译
         if not path.exists(self._obj_path):
             return True
 
-        return lstat(self._src_path).st_mtime_ns >= lstat(self._obj_path).st_mtime_ns
+        for depend in self._dependencies_probe.probe():
+            if lstat(depend).st_mtime_ns >= self._obj_modified_at:
+                return True
+
+        return False
 
     def compile(self):
         # TODO: -o 并不通用
-        cmd = [self._compiler, self._src_path, *self._flags, '-c', '-o', self._obj_path]
+        cmd = [self._compiler, self._src_path, *self._compile_flags, '-c', '-o', self._obj_path]
         _CC_LOGGER.debug('Run: ' + ' '.join(cmd))
         proc = run(cmd, stdout=PIPE, stderr=STDOUT)
         if proc.returncode != 0:
             raise CompilationError(
                 f'{self._src_path}: compile fail\n{proc.stdout.decode(locale.getpreferredencoding())}\n')
-
-
 
 
 class _CCBuilder:
@@ -73,13 +109,13 @@ class _CCBuilder:
         if not path.exists(self._output):
             return True
         mtime = lstat(self._output).st_mtime_ns
-        return any(map(lambda src: src.src_st_mtime_ns >= mtime, self._sources))
+        return any(map(lambda src: src._src_modified_at >= mtime, self._sources))
 
     def _compile(self):
         for src in self._sources:
-            # if not src.need_recompile:
-            #     _CC_LOGGER.debug(f'Skip: {src._src_path}')
-            #     continue
+            if not src.need_recompile:
+                _CC_LOGGER.debug(f'Skip: {src._src_path}')
+                continue
             _CC_LOGGER.info(f'Compiling: {src._src_path}')
             src.compile()
 
@@ -95,20 +131,19 @@ class _CCBuilder:
 
     def build(self):
         _CC_LOGGER.info(f'Building: {self._output}')
-        self._compile()
-        self._link()
-        # if self.need_rebuild:
-        #     self._compile()
-        #     self._link()
+        if self.need_rebuild:
+            self._compile()
+            self._link()
 
 
 class CCTarget:
-    def __init__(self, name, compiler='gcc', linker='gcc', binary_dir='build/bin', obj_dir='build/obj') -> None:
+    def __init__(self, name, compiler='gcc', linker='gcc', bin_dir='build/bin', obj_dir='build/obj', dep_dir='build/dep') -> None:
         self.name = name
         self._compiler: str = compiler
         self._linker: str = linker
-        self._binary_dir: str = binary_dir
+        self._bin_dir: str = bin_dir
         self._obj_dir: str = obj_dir
+        self._dep_dir: str = dep_dir
 
         self._sources: Set[str] = set()
         self._LD_FLAGS: Set[str] = set()
@@ -132,16 +167,20 @@ class CCTarget:
         self._linker = linker
 
     @property
-    def binary_dir(self):
-        return self._binary_dir
+    def bin_dir(self):
+        return self._bin_dir
 
-    @binary_dir.setter
-    def binary_dir(self, binary_dir):
-        self._binary_dir = binary_dir
+    @bin_dir.setter
+    def bin_dir(self, binary_dir):
+        self._bin_dir = binary_dir
 
     @property
     def obj_dir(self):
         return self._obj_dir
+
+    @property
+    def dep_dir(self):
+        return self._dep_dir
 
     @property
     def c_flags(self):
@@ -157,7 +196,7 @@ class CCTarget:
 
     @property
     def target_binary_path(self):
-        return path.join(self.binary_dir, self.name)
+        return path.join(self.bin_dir, self.name)
 
     def add_include_dir(self, *includes):
         for inc in includes:
@@ -195,19 +234,21 @@ class CCTarget:
             self._sources.add(path.abspath(src))
 
     def build(self):
-        makedirs(self.binary_dir, exist_ok=True)
+        makedirs(self.bin_dir, exist_ok=True)
         makedirs(self.obj_dir, exist_ok=True)
+        makedirs(self.dep_dir, exist_ok=True)
         sources = [
             _CCSource(
                 path.abspath(src),
                 self.compiler,
-                self.c_flags if not _CCSource.is_cpp(src) else self.cxx_flags,
-                path.abspath(path.join(self.obj_dir, pathlib.Path(src).with_suffix('.obj').name))
+                self.c_flags if src.endswith('.c') else self.cxx_flags,
+                path.abspath(path.join(self.obj_dir, pathlib.Path(src).with_suffix('.obj').name)),
+                path.abspath(path.join(self.dep_dir, pathlib.Path(src).with_suffix('.dep').name))
             )
             for src in self._sources
         ]
-        bin = path.abspath(path.join(self.binary_dir, self.name))
+        bin = path.abspath(path.join(self.bin_dir, self.name))
         builder = _CCBuilder(sources, self.compiler, self.linker, self.c_flags, self.cxx_flags, self.ld_flags, bin)
         builder.build()
 
-        _CC_LOGGER.info(f'Target build: {bin}')
+        _CC_LOGGER.info(f'Artifact built: {bin}')
