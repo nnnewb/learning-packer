@@ -7,9 +7,7 @@
 #include "junkcode.h"
 
 int _start(void) {
-  ANTI_LINEAR_DISASSEMBLE_ALGORITHM_1;
-  ANTI_CONTROLFLOW_DISASSEMBLE_ALGORITHM_1;
-
+  CALL_RET_JUNK;
   char *unpacker_VA = (char *)GetModuleHandleA(NULL);
 
   IMAGE_DOS_HEADER *p_DOS_header = (IMAGE_DOS_HEADER *)unpacker_VA;
