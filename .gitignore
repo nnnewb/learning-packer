@@ -11,3 +11,7 @@ typings
 .clangd
 .vscode
 .idea
+
+*.dll
+*.exe
+*.o
